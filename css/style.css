@@ -4,6 +4,7 @@
   --text: #edeae3;
   --text-dim: #8c8a85;
   --accent: #c9a063;
+  --accent-glow: rgba(201, 160, 99, .65);
   --line: #2a2b2d;
   --nav-h: 76px;
   --ease: cubic-bezier(.22,.61,.36,1);
@@ -15,6 +16,7 @@ html[data-theme="light"]{
   --text: #17181a;
   --text-dim: #6b6863;
   --accent: #9c7a3f;
+  --accent-glow: rgba(156, 122, 63, .45);
   --line: #ddd8cd;
 }
 
@@ -320,18 +322,20 @@ img{ max-width: 100%; display: block; }
 }
 .works-more-btn{
   pointer-events: auto;
-  padding: 12px 32px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--bg-alt);
-  color: var(--text);
-  font-size: .8rem;
-  letter-spacing: .08em;
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  color: var(--text-dim);
+  font-size: .82rem;
+  letter-spacing: .1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color .25s var(--ease), background-color .25s var(--ease);
+  transition: color .25s var(--ease), text-shadow .25s var(--ease);
 }
-.works-more-btn:hover{ border-color: var(--accent); }
+.works-more-btn:hover{
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent-glow);
+}
 
 @media (max-width: 900px){
   .works-grid{ grid-template-columns: repeat(2, 1fr); }

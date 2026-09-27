@@ -202,12 +202,12 @@ function renderGrids(works){
 
     visible.forEach(work => grid.appendChild(buildCard(work)));
 
-    if(hidden.length) setupViewMore(grid, hidden);
+    if(hidden.length) setupViewMore(grid, hidden, category);
   });
 }
 
 // 上限を超えた分はグラデーションでぼかして隠し、「View more」で全件表示する
-function setupViewMore(grid, hiddenItems){
+function setupViewMore(grid, hiddenItems, category){
   const fade = document.createElement('div');
   fade.className = 'works-fade';
 
@@ -219,7 +219,17 @@ function setupViewMore(grid, hiddenItems){
 
   grid.insertAdjacentElement('afterend', fade);
 
+  // Stillsは段組み(masonry)で列ごとに高さがバラバラなので、
+  // 特定のカードに重ねると他の列の画像にかぶってしまう。
+  // そのため重ねずにグリッド全体の下へ余白として置く。
+  const isMasonry = category === 'STILLS';
+
   function sizeFade(){
+    if(isMasonry){
+      fade.style.marginTop = '0px';
+      fade.style.height = '160px';
+      return;
+    }
     const lastCard = grid.lastElementChild;
     if(!lastCard) return;
     const cardHeight = lastCard.getBoundingClientRect().height;
