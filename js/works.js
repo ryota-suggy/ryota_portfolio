@@ -16,7 +16,7 @@ window.PortfolioData = (async function loadPortfolioData(){
     return await res.json();
   }catch(err){
     console.error(err);
-    return { hero: { videos: [] }, about: null, worksReels: [], worksStills: [] };
+    return { hero: { videos: [] }, about: null, worksReels: [], worksStills: [], worksArticles: [] };
   }
 })();
 
@@ -75,6 +75,8 @@ function fetchOEmbed(work){
 
 // タイトル・サムネイルが空の作品を、可能な範囲で自動補完する
 async function enrichWork(work){
+  if(work.category === 'ARTICLES') return enrichArticle(work);
+
   if(work.platform === 'youtube' && !work.thumbnail){
     const id = extractYouTubeId(work.sourceUrl);
     if(id) work.thumbnail = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
@@ -91,6 +93,36 @@ async function enrichWork(work){
 
   if(!work.title) work.title = 'Untitled';
   if(!work.thumbnail) work.thumbnail = 'https://placehold.co/1200x750/131416/c9a063?text=No+Image';
+  return work;
+}
+
+const microlinkCache = new Map();
+
+// Microlink API(https://microlink.io)経由で、任意のURLのタイトル・OGP画像を取得する
+// APIキー不要・1日50回までの無料枠で動く。取得できなかった場合は静かに諦める。
+function fetchMicrolink(url){
+  if(microlinkCache.has(url)) return microlinkCache.get(url);
+  const promise = fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`)
+    .then(r => (r.ok ? r.json() : null))
+    .then(json => (json && json.status === 'success') ? json.data : null)
+    .catch(() => null);
+  microlinkCache.set(url, promise);
+  return promise;
+}
+
+// Articles(記事紹介)用の自動補完。タイトル・サムネイルが空ならMicrolinkで取得を試みる
+async function enrichArticle(work){
+  const needsMeta = (!work.title || !work.thumbnail) && work.sourceUrl;
+  if(needsMeta){
+    const meta = await fetchMicrolink(work.sourceUrl);
+    if(meta){
+      if(!work.title) work.title = meta.title || work.title;
+      if(!work.thumbnail) work.thumbnail = (meta.image && meta.image.url) || work.thumbnail;
+    }
+  }
+
+  if(!work.title) work.title = work.sourceUrl || 'Untitled';
+  if(!work.thumbnail) work.thumbnail = 'https://placehold.co/1200x630/131416/c9a063?text=No+Image';
   return work;
 }
 
@@ -132,9 +164,18 @@ function buildCard(work){
 
   card.appendChild(caption);
 
-  card.addEventListener('click', () => openLightbox(work));
+  if(work.category === 'ARTICLES'){
+    // Articlesはクリックしたら鑑賞画面を開かず、そのまま記事URLへ新しいタブで移動する
+    card.addEventListener('click', () => {
+      if(work.sourceUrl) window.open(work.sourceUrl, '_blank', 'noopener');
+    });
+  }else{
+    card.addEventListener('click', () => openLightbox(work));
+  }
   return card;
 }
+
+const VIEW_MORE_LIMITS = { REELS: 7, STILLS: 15 };
 
 function renderGrids(works){
   const grids = document.querySelectorAll('.works-grid[data-category]');
@@ -153,10 +194,46 @@ function renderGrids(works){
       return;
     }
 
-    items
-      .slice()
-      .sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || ''))
-      .forEach(work => grid.appendChild(buildCard(work)));
+    const sorted = items.slice().sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || ''));
+
+    const limit = VIEW_MORE_LIMITS[category];
+    const visible = limit ? sorted.slice(0, limit) : sorted;
+    const hidden = limit ? sorted.slice(limit) : [];
+
+    visible.forEach(work => grid.appendChild(buildCard(work)));
+
+    if(hidden.length) setupViewMore(grid, hidden);
+  });
+}
+
+// 上限を超えた分はグラデーションでぼかして隠し、「View more」で全件表示する
+function setupViewMore(grid, hiddenItems){
+  const fade = document.createElement('div');
+  fade.className = 'works-fade';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'works-more-btn';
+  btn.textContent = `View more (+${hiddenItems.length})`;
+  fade.appendChild(btn);
+
+  grid.insertAdjacentElement('afterend', fade);
+
+  function sizeFade(){
+    const lastCard = grid.lastElementChild;
+    if(!lastCard) return;
+    const cardHeight = lastCard.getBoundingClientRect().height;
+    fade.style.marginTop = `-${Math.round(cardHeight * 0.9)}px`;
+    fade.style.height = `${Math.round(cardHeight * 1.3)}px`;
+  }
+  // 画像読み込み前後でカードの高さが変わることがあるため、少し遅らせて計測する
+  requestAnimationFrame(sizeFade);
+  window.addEventListener('resize', sizeFade);
+
+  btn.addEventListener('click', () => {
+    hiddenItems.forEach(work => grid.appendChild(buildCard(work)));
+    window.removeEventListener('resize', sizeFade);
+    fade.remove();
   });
 }
 
@@ -320,10 +397,11 @@ function initHero(videoUrls){
 document.addEventListener('DOMContentLoaded', async () => {
   const data = await window.PortfolioData;
 
-  // 2つに分かれた作品リスト(worksReels/worksStills)をカテゴリ情報付きの1本の配列にまとめる
+  // 3つに分かれた作品リスト(worksReels/worksStills/worksArticles)をカテゴリ情報付きの1本の配列にまとめる
   const works = [
     ...(data.worksReels || []).map(w => ({ ...w, category: 'REELS' })),
-    ...(data.worksStills || []).map(w => ({ ...w, category: 'STILLS' }))
+    ...(data.worksStills || []).map(w => ({ ...w, category: 'STILLS' })),
+    ...(data.worksArticles || []).map(w => ({ ...w, category: 'ARTICLES' }))
   ];
 
   if(document.querySelector('.works-grid[data-category]')){

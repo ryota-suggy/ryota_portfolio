@@ -1,6 +1,6 @@
 backend:
   name: github
-  repo: Sugggy/ryota_portfolio
+  repo: ryota-suggy/ryota_portfolio
   branch: main
 
 # Sveltia CMSがGitHubに直接コミットします(Netlifyは不要)。
@@ -104,6 +104,30 @@ collections:
               - label: "説明文(任意)"
                 name: "description"
                 widget: "text"
+                required: false
+              - label: "追加日"
+                name: "addedAt"
+                widget: "datetime"
+                format: "YYYY-MM-DD"
+                date_format: "YYYY-MM-DD"
+                time_format: false
+                default: ""
+
+          - label: "Articles(記事紹介)"
+            name: "worksArticles"
+            widget: "list"
+            summary: "{{fields.title}}"
+            fields:
+              - label: "タイトル(空欄なら記事のURLから自動取得を試みます)"
+                name: "title"
+                widget: "string"
+                required: false
+              - label: "記事のURL(note、CGWORLDなど)"
+                name: "sourceUrl"
+                widget: "string"
+              - label: "サムネイル画像(空欄なら記事のURLから自動取得を試みます)"
+                name: "thumbnail"
+                widget: "image"
                 required: false
               - label: "追加日"
                 name: "addedAt"
