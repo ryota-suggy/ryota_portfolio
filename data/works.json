@@ -196,6 +196,20 @@
       "addedAt": "2026-09-21"
     }
   ],
+  "worksArticles": [
+    {
+      "title": "自主制作：何を考えて作った？#1【インタビュー編】",
+      "sourceUrl": "https://note.com/ryota_vfx/n/n32ae0d1438bd",
+      "thumbnail": "",
+      "addedAt": "2026-09-27"
+    },
+    {
+      "title": "Nuke Artists Q&A ｜ 学生からプロまで特徴的な作品づくりを手がけるアーティストたちにインタビュー",
+      "sourceUrl": "https://cgworld.jp/special-feature/nuke-artists-qa.html",
+      "thumbnail": "",
+      "addedAt": "2026-09-27"
+    }
+  ],
   "works": [
     {
       "addedAt": "2025-11-30",
